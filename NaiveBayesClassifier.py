@@ -2,18 +2,22 @@ import string
 import re
 import math
 import time
+import sys
 
-startTrain = time.time()
+startFile = time.time()
+
 #Open files
-trainSet = open('training.txt')
+trainSet = open(sys.argv[1])
 trainText = trainSet.read()
-testSet = open('testing.txt')
+testSet = open(sys.argv[2])
 testText = testSet.read()
 
 #Define positive and negative vocab
 positiveVocab = {}
 negativeVocab = {}
 classList = []
+
+endFile = time.time()
 
 def getReviews(x):
 	reviews = re.split(r'\n+', x)
@@ -62,45 +66,35 @@ def removeCommonWords():
 
 def removeRarelyUsedWords():
 	for i in positiveVocab.keys():
-		if positiveVocab[i] < 8:
+		if positiveVocab.key(i) < 8:
 			del positiveVocab[i]
 
 	for j in negativeVocab.keys():
-		if negativeVocab[i] < 8:
+		if negativeVocab.key(i) < 8:
 			del negativeVocab[i]
 	
 
-def classify(r):
+def classify(r, pos, neg):
 
 	log_prob_pos = 0.0
 	log_prob_neg = 0.0
 
-	wordsInPos = sum(positiveVocab.values())
-	wordsInNeg = sum(negativeVocab.values())
+	wordsInPos = pos
+	wordsInNeg = neg
 
 	for word, count in r.items():
-		if not word in positiveVocab or not word in negativeVocab or len(word) <= 5:
-			continue
+		
+		p_word_pos = (positiveVocab.get(word, 0.0))/(wordsInPos+wordsInNeg)
+		p_word_neg = (negativeVocab.get(word, 0.0))/(wordsInPos+wordsInNeg)
 
-		#p_word_pos = positiveVocab[word]/(wordsInPos+wordsInNeg)
-		#p_word_neg = negativeVocab[word]/(wordsInPos+wordsInNeg)
+		p_w_given_pos = (positiveVocab.get(word, 0.0)+0.1)/(wordsInPos + positiveVocab.get(word, 0.0)) 
+		p_w_given_neg = (negativeVocab.get(word, 0.0)+0.1)/(wordsInNeg + negativeVocab.get(word, 0.0))
 
-		p_w_given_pos = positiveVocab.get(word, 0.0) 
-		p_w_given_neg = negativeVocab.get(word, 0.0) 
-
-
-		#So that words that never appears in the catagory is omitted
-		if p_w_given_pos > 0.0:
-			log_prob_pos += (p_w_given_pos)
-		if p_w_given_neg > 0.0:
-			log_prob_neg += (p_w_given_neg)
+		log_prob_pos += (p_w_given_pos)
+		log_prob_neg += (p_w_given_neg)
 
 	scorePos = (log_prob_pos)
 	scoreNeg = (log_prob_neg)
-
-	#print scorePos
-	#print scoreNeg
-	#print '\n'
 
 
 	if scorePos > scoreNeg:
@@ -113,6 +107,8 @@ def classify(r):
 		return 0
 
 def main():
+
+	startTrain = time.time()
 
 	trainCorrect = 0.0
 	totalTrainTested = 0.0
@@ -141,12 +137,15 @@ def main():
 
 	startTest = time.time()
 
+	wordsInPos = sum(positiveVocab.values())
+	wordsInNeg = sum(negativeVocab.values())
+
 	#Classify loop for the training set
 	for i in range(0, len(trainingReviews)):
 		standardizeTraining = standardize(trainingReviews[i])
 		trainingCount, trueClass = wordCounter(standardizeTraining, 0)
 		trueClass = str(trueClass)
-		classification = classify(trainingCount)
+		classification = classify(trainingCount, wordsInPos, wordsInNeg)
 		classification = str(classification)
 		if classification == (trueClass):
 			trainCorrect += 1.0
@@ -158,7 +157,7 @@ def main():
 		standardizeTesting = standardize(testingReviews[i])
 		testingCount, trueClass = wordCounter(standardizeTesting, 0)
 		trueClass = str(trueClass)
-		classification = classify(testingCount)
+		classification = classify(testingCount, wordsInPos, wordsInNeg)
 		classification = str(classification)
 		if classification == trueClass:
 			testCorrect += 1.0
@@ -168,12 +167,15 @@ def main():
 	endTest = time.time()
 
 	#Print functions to get right output
-	print math.ceil((endTrain-startTrain)), ' (training)'
-	print math.ceil((endTest-startTest)), ' (labeling)'
-	print (trainCorrect/totalTrainTested), ' (training)'
-	print (testCorrect/totalTestTested), ' (testing)'
+	trainingTime = int(math.ceil(((endTrain-startTrain)+(endFile-startFile))))
+	labelingTime = int(math.ceil((endTest-startTest)))
 
+	trainingAccuracy = round((trainCorrect/totalTrainTested),3)
+	testingAccuracy = round((testCorrect/totalTestTested),3)
 
+	print trainingTime, 'seconds (training)'
+	print labelingTime, 'seconds (labeling)'
+	print trainingAccuracy, '(training)'
+	print testingAccuracy, '(testing)'
 
 main()
-
