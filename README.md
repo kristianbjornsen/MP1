@@ -1,2 +1,2 @@
 # Naive Bayes Classifier Python
-Naive Bayes Classifier
+This is a simple implementation of a naive Bayes classifier for classification as a part of Artificial Intelligence at UCSB.
